@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactElement } from "react";
+
 /**
  * Pure-Tailwind placeholder "image" block for each product category.
  * Zero external requests — bg colour + an inline SVG icon, both driven
@@ -82,7 +84,7 @@ function FallbackIcon({ className }: { className: string }) {
   );
 }
 
-const ICONS: Record<string, (props: { className: string }) => JSX.Element> = {
+const ICONS: Record<string, (props: { className: string }) => ReactElement> = {
   Books:       BookIcon,
   Electronics: ElectronicsIcon,
   Home:        HomeIcon,
