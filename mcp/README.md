@@ -26,6 +26,8 @@ frontend-interview/
 - **accessibility** - Accessibility requirements
 - **stateManagement** - How to handle state
 - **typeScript** - TypeScript best practices
+- **testing** - Testing Guidelines
+- **testReporting** - Test Reports and Coverage
 
 ## Setup (3 simple steps)
 
