@@ -16,6 +16,9 @@ We got AUTOMATED tests using the MCP! Have a look at the results!
 
 (https://stirring-boba-c13c1b.netlify.app/)
 
+I also deployed the site to Netlify if you don't want to dig through the code:
+(https://fastidious-kelpie-93d92e.netlify.app/)
+
 ## You wanna test the app?
   Steps:
 
