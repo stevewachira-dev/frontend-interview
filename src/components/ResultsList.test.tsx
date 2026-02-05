@@ -37,47 +37,48 @@ const mockItems: Item[] = [
 ];
 
 describe("ResultsList", () => {
-  // ── loading state ─────────────────────────────────────────────
+  // ── loading state (skeleton) ──────────────────────────────────────
 
-  it("renders a loading spinner with role=status when isLoading is true", () => {
+  it("renders the status region when isLoading is true", () => {
     render(<ResultsList items={[]} isLoading={true} onItemClick={jest.fn()} />);
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
 
-    const spinner = screen.getByRole("status");
-    expect(spinner).toBeInTheDocument();
-    expect(spinner).toHaveTextContent(/loading/i);
+  it("shows 'Loading…' text while loading", () => {
+    render(<ResultsList items={[]} isLoading={true} onItemClick={jest.fn()} />);
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
   it("does NOT render item cards while loading, even if items are provided", () => {
     render(
       <ResultsList items={mockItems} isLoading={true} onItemClick={jest.fn()} />
     );
-
-    // spinner present
     expect(screen.getByRole("status")).toBeInTheDocument();
-
-    // no item cards
     mockItems.forEach((item) => {
-      expect(
-        screen.queryByText(item.name)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(item.name)).not.toBeInTheDocument();
     });
   });
 
-  // ── empty state ───────────────────────────────────────────────
+  // ── empty state ───────────────────────────────────────────────────
 
   it("shows 'No results found' when items array is empty and not loading", () => {
     render(<ResultsList items={[]} isLoading={false} onItemClick={jest.fn()} />);
-
     expect(screen.getByText(/no results found/i)).toBeInTheDocument();
   });
 
-  // ── populated list ────────────────────────────────────────────
+  it("shows the helper subtitle in the empty state", () => {
+    render(<ResultsList items={[]} isLoading={false} onItemClick={jest.fn()} />);
+    expect(
+      screen.getByText(/try adjusting your search term/i)
+    ).toBeInTheDocument();
+  });
+
+  // ── populated list ────────────────────────────────────────────────
 
   it("renders a card for every item in the list", () => {
     render(
       <ResultsList items={mockItems} isLoading={false} onItemClick={jest.fn()} />
     );
-
     mockItems.forEach((item) => {
       expect(screen.getByText(item.name)).toBeInTheDocument();
     });
@@ -87,18 +88,24 @@ describe("ResultsList", () => {
     render(
       <ResultsList items={mockItems} isLoading={false} onItemClick={jest.fn()} />
     );
-
     mockItems.forEach((item) => {
-      // name
       expect(screen.getByText(item.name)).toBeInTheDocument();
-      // category
       expect(screen.getByText(item.category)).toBeInTheDocument();
-      // rating — rendered as "X.X / 5"
       expect(
         screen.getByText(new RegExp(`${item.rating}\\s*/\\s*5`))
       ).toBeInTheDocument();
-      // price
       expect(screen.getByText(item.price)).toBeInTheDocument();
+    });
+  });
+
+  it("each card renders a CategoryPlaceholder with the correct aria-label", () => {
+    render(
+      <ResultsList items={mockItems} isLoading={false} onItemClick={jest.fn()} />
+    );
+    mockItems.forEach((item) => {
+      expect(
+        screen.getByLabelText(`${item.category} placeholder`)
+      ).toBeInTheDocument();
     });
   });
 
@@ -106,7 +113,6 @@ describe("ResultsList", () => {
     render(
       <ResultsList items={mockItems} isLoading={false} onItemClick={jest.fn()} />
     );
-
     const buttons = screen.getAllByRole("button");
     expect(buttons).toHaveLength(mockItems.length);
   });
@@ -115,7 +121,6 @@ describe("ResultsList", () => {
     render(
       <ResultsList items={mockItems} isLoading={false} onItemClick={jest.fn()} />
     );
-
     mockItems.forEach((item) => {
       expect(
         screen.getByLabelText(new RegExp(`View details for ${item.name}`, "i"))
@@ -123,7 +128,7 @@ describe("ResultsList", () => {
     });
   });
 
-  // ── click interaction ─────────────────────────────────────────
+  // ── click interaction ─────────────────────────────────────────────
 
   it("calls onItemClick with the correct item when a card is clicked", async () => {
     const onItemClick = jest.fn();
@@ -132,7 +137,6 @@ describe("ResultsList", () => {
       <ResultsList items={mockItems} isLoading={false} onItemClick={onItemClick} />
     );
 
-    // click the second card
     const secondCard = screen.getByLabelText(
       new RegExp(`View details for ${mockItems[1].name}`, "i")
     );
@@ -149,7 +153,6 @@ describe("ResultsList", () => {
       <ResultsList items={mockItems} isLoading={false} onItemClick={onItemClick} />
     );
 
-    // click every card in order
     for (const item of mockItems) {
       const card = screen.getByLabelText(
         new RegExp(`View details for ${item.name}`, "i")
@@ -163,7 +166,7 @@ describe("ResultsList", () => {
     });
   });
 
-  // ── single item ───────────────────────────────────────────────
+  // ── single item ───────────────────────────────────────────────────
 
   it("renders correctly with a single item", () => {
     const single = [mockItems[0]];

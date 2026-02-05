@@ -48,12 +48,21 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen p-8 bg-white">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <h1 className="font-bold text-2xl text-gray-900 text-center">
-          Shop Search
-        </h1>
+    <main className="min-h-screen bg-gray-50">
+      {/* Hero / header band */}
+      <header className="bg-linear-to-r py-10 px-4 shadow-md">
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 className="font-bold text-3xl text-black tracking-tight">
+            Shop Search
+          </h1>
+          <p className="mt-1 text-black text-sm">
+            Browse and discover products by name or tag
+          </p>
+        </div>
+      </header>
 
+      {/* Body */}
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <SearchBar onSearch={handleSearch} />
 
         <ResultsList

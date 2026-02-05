@@ -41,9 +41,7 @@ async function typeAndSettle(
   text: string
 ) {
   await user.type(element, text);
-  // 1) fire the debounce → React sets isLoading & schedules filterTimer
   await advanceAndFlush(300);
-  // 2) fire the filter timer → React sets isLoading=false & updates items
   await advanceAndFlush(150);
 }
 
@@ -58,12 +56,23 @@ describe("Home (page.tsx) — integration", () => {
 
   // ── initial render ──────────────────────────────────────────────
 
-  it("renders the page heading", async () => {
+  it("renders the page heading inside a header", async () => {
+    render(<Home />);
+    await advanceAndFlush(0);
+
+    const header = document.querySelector("header");
+    expect(header).toBeTruthy();
+    expect(
+      within(header!).getByRole("heading", { name: /shop search/i })
+    ).toBeInTheDocument();
+  });
+
+  it("renders the subtitle beneath the heading", async () => {
     render(<Home />);
     await advanceAndFlush(0);
 
     expect(
-      screen.getByRole("heading", { name: /shop search/i })
+      screen.getByText(/browse and discover products/i)
     ).toBeInTheDocument();
   });
 
@@ -76,7 +85,6 @@ describe("Home (page.tsx) — integration", () => {
 
   it("shows all 100 items on initial load (no search term)", async () => {
     render(<Home />);
-    // initial onSearch("") fires immediately; flush the 150 ms filter delay
     await advanceAndFlush(150);
 
     const cards = screen.getAllByRole("button", {
@@ -85,17 +93,27 @@ describe("Home (page.tsx) — integration", () => {
     expect(cards).toHaveLength(100);
   });
 
+  // ── CategoryPlaceholder on cards ────────────────────────────────
+
+  it("each result card has a category placeholder", async () => {
+    render(<Home />);
+    await advanceAndFlush(150);
+
+    // Item 001 is "Books"
+    const card = screen.getByLabelText(/View details for Item 001/i);
+    expect(within(card).getByLabelText(/books placeholder/i)).toBeInTheDocument();
+  });
+
   // ── search by name ──────────────────────────────────────────────
 
   it("filters items by name (case-insensitive partial match)", async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(<Home />);
-    await advanceAndFlush(150); // initial load
+    await advanceAndFlush(150);
 
     const input = screen.getByLabelText(/search items/i);
     await typeAndSettle(user, input, "Item 001");
 
-    // "Item 001" is the only name that matches
     const cards = screen.getAllByRole("button", { name: /view details for/i });
     expect(cards).toHaveLength(1);
     expect(cards[0]).toHaveAccessibleName(/Item 001/);
@@ -112,7 +130,6 @@ describe("Home (page.tsx) — integration", () => {
     await typeAndSettle(user, input, "eco");
 
     const cards = screen.getAllByRole("button", { name: /view details for/i });
-    // "eco" is a tag on multiple items — more than 1, fewer than 100
     expect(cards.length).toBeGreaterThan(1);
     expect(cards.length).toBeLessThan(100);
   });
@@ -130,9 +147,22 @@ describe("Home (page.tsx) — integration", () => {
     expect(screen.getByText(/no results found/i)).toBeInTheDocument();
   });
 
-  // ── loading state ───────────────────────────────────────────────
+  it("shows the empty-state subtitle when no items match", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Home />);
+    await advanceAndFlush(150);
 
-  it("briefly shows a loading spinner after the debounce fires", async () => {
+    const input = screen.getByLabelText(/search items/i);
+    await typeAndSettle(user, input, "zzzznonexistentthing");
+
+    expect(
+      screen.getByText(/try adjusting your search term/i)
+    ).toBeInTheDocument();
+  });
+
+  // ── loading state (skeleton) ────────────────────────────────────
+
+  it("briefly shows a loading skeleton after the debounce fires", async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(<Home />);
     await advanceAndFlush(150); // initial load settled
@@ -144,13 +174,14 @@ describe("Home (page.tsx) — integration", () => {
     // and schedules the 150 ms filter timer, but does NOT resolve it.
     await advanceAndFlush(300);
 
-    // Loading spinner should be visible
+    // Skeleton status region should be visible
     expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
 
     // Now resolve the filter timer
     await advanceAndFlush(150);
 
-    // Spinner gone
+    // Skeleton gone
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -163,14 +194,12 @@ describe("Home (page.tsx) — integration", () => {
 
     const input = screen.getByLabelText(/search items/i);
 
-    // narrow results
     await typeAndSettle(user, input, "Item 001");
     expect(screen.getAllByRole("button", { name: /view details for/i })).toHaveLength(1);
 
-    // clear input and let debounce + filter settle
     await user.clear(input);
-    await advanceAndFlush(300); // debounce
-    await advanceAndFlush(150); // filter
+    await advanceAndFlush(300);
+    await advanceAndFlush(150);
 
     expect(screen.getAllByRole("button", { name: /view details for/i })).toHaveLength(100);
   });
@@ -190,6 +219,20 @@ describe("Home (page.tsx) — integration", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
+  it("modal displays a CategoryPlaceholder banner", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Home />);
+    await advanceAndFlush(150);
+
+    // Item 001 is Books
+    await user.click(screen.getByLabelText(/View details for Item 001/i));
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByLabelText(/books placeholder/i)
+    ).toBeInTheDocument();
+  });
+
   it("modal displays the correct item details", async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(<Home />);
@@ -203,7 +246,7 @@ describe("Home (page.tsx) — integration", () => {
     expect(
       within(dialog).getByRole("heading", { name: /Item 002/ })
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("Electronics")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Electronics").length).toBeGreaterThan(0);
     expect(
       within(dialog).getByText(/Item 002 is a electronics product/i)
     ).toBeInTheDocument();
@@ -236,7 +279,6 @@ describe("Home (page.tsx) — integration", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
 
-    // click the backdrop (the dialog element itself)
     await user.click(dialog);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -251,7 +293,6 @@ describe("Home (page.tsx) — integration", () => {
     await user.click(screen.getByLabelText(/View details for Item 001/i));
 
     const dialog = screen.getByRole("dialog");
-    // scope heading query to dialog to avoid matching the h3 card behind it
     const modalHeading = within(dialog).getByRole("heading", { name: /Item 001/ });
     await user.click(modalHeading);
 

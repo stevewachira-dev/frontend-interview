@@ -17,57 +17,70 @@ const sampleItem: Item = {
 };
 
 describe("DetailsModal", () => {
-  // ── null guard ────────────────────────────────────────────────
+  // ── null guard ────────────────────────────────────────────────────
 
   it("renders nothing when item is null", () => {
     const { container } = render(
       <DetailsModal item={null} onClose={jest.fn()} />
     );
-
     expect(container.innerHTML).toBe("");
   });
 
-  // ── full-detail rendering ─────────────────────────────────────
+  // ── CategoryPlaceholder banner ────────────────────────────────────
+
+  it("renders a CategoryPlaceholder for the item's category", () => {
+    render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
+    expect(
+      screen.getByLabelText(`${sampleItem.category} placeholder`)
+    ).toBeInTheDocument();
+  });
+
+  // ── full-detail rendering ─────────────────────────────────────────
 
   it("renders the item name as a heading", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
-
     expect(
       screen.getByRole("heading", { name: sampleItem.name })
     ).toBeInTheDocument();
   });
 
-  it("displays category, rating, price, and description", () => {
+  it("displays price as a badge", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
+    expect(screen.getByText(sampleItem.price)).toBeInTheDocument();
+  });
 
-    expect(screen.getByText(sampleItem.category)).toBeInTheDocument();
+  it("displays category and rating", () => {
+    render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
+    // category appears both in the placeholder label and in the detail grid;
+    // getAllByText ensures at least one match in the body text
+    expect(screen.getAllByText(sampleItem.category).length).toBeGreaterThan(0);
     expect(
       screen.getByText(new RegExp(`${sampleItem.rating}\\s*/\\s*5`))
     ).toBeInTheDocument();
-    expect(screen.getByText(sampleItem.price)).toBeInTheDocument();
+  });
+
+  it("displays description", () => {
+    render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
     expect(screen.getByText(sampleItem.description)).toBeInTheDocument();
   });
 
   it("renders every tag as a visible badge", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
-
     sampleItem.tags.forEach((tag) => {
       expect(screen.getByText(tag)).toBeInTheDocument();
     });
   });
 
-  // ── dialog semantics & accessibility ──────────────────────────
+  // ── dialog semantics & accessibility ──────────────────────────────
 
   it("has role=dialog and aria-modal=true on the backdrop", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
-
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
   it("has an accessible aria-label on the dialog referencing the item name", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
-
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute(
       "aria-label",
@@ -77,12 +90,11 @@ describe("DetailsModal", () => {
 
   it("close button has a descriptive aria-label", () => {
     render(<DetailsModal item={sampleItem} onClose={jest.fn()} />);
-
     const closeBtn = screen.getByLabelText(/close/i);
     expect(closeBtn).toBeInTheDocument();
   });
 
-  // ── close via close button ────────────────────────────────────
+  // ── close via close button ────────────────────────────────────────
 
   it("calls onClose when the close button is clicked", async () => {
     const onClose = jest.fn();
@@ -95,29 +107,26 @@ describe("DetailsModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // ── close via backdrop click ──────────────────────────────────
+  // ── close via backdrop click ──────────────────────────────────────
 
   it("calls onClose when the backdrop (outside modal content) is clicked", async () => {
     const onClose = jest.fn();
     const user = userEvent.setup();
     render(<DetailsModal item={sampleItem} onClose={onClose} />);
 
-    // The backdrop is the element with role=dialog itself.
-    // Clicking it directly (not the inner content) should trigger onClose.
     const backdrop = screen.getByRole("dialog");
     await user.click(backdrop);
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // ── stopPropagation: click inside modal does NOT close ────────
+  // ── stopPropagation: click inside modal does NOT close ────────────
 
   it("does NOT call onClose when clicking inside the modal content area", async () => {
     const onClose = jest.fn();
     const user = userEvent.setup();
     render(<DetailsModal item={sampleItem} onClose={onClose} />);
 
-    // Click on the item name heading — inside the modal content div
     const heading = screen.getByRole("heading", { name: sampleItem.name });
     await user.click(heading);
 
@@ -135,12 +144,11 @@ describe("DetailsModal", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  // ── item with a single tag ────────────────────────────────────
+  // ── item with a single tag ────────────────────────────────────────
 
   it("handles an item with only one tag", () => {
     const singleTagItem: Item = { ...sampleItem, tags: ["eco"] };
     render(<DetailsModal item={singleTagItem} onClose={jest.fn()} />);
-
     expect(screen.getByText("eco")).toBeInTheDocument();
   });
 });

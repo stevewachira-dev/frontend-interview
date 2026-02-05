@@ -13,7 +13,7 @@ describe("SearchBar", () => {
     jest.useRealTimers();
   });
 
-  // ── rendering & accessibility ──────────────────────────────────
+  // ── rendering & accessibility ───────────────────────────────────
 
   it("renders a labelled text input", () => {
     render(<SearchBar onSearch={jest.fn()} />);
@@ -28,7 +28,6 @@ describe("SearchBar", () => {
 
     const label = screen.getByText(/search items/i);
     expect(label).toBeInTheDocument();
-    // The label's htmlFor must match the input's id
     expect(label).toHaveAttribute("for", "search-input");
 
     const input = screen.getByRole("textbox");
@@ -42,7 +41,15 @@ describe("SearchBar", () => {
     expect(input).toHaveAttribute("placeholder", expect.stringContaining("Search"));
   });
 
-  // ── controlled input ────────────────────────────────────────────
+  it("contains an aria-hidden search icon SVG", () => {
+    const { container } = render(<SearchBar onSearch={jest.fn()} />);
+    const iconWrapper = container.querySelector('[aria-hidden="true"]');
+    expect(iconWrapper).toBeTruthy();
+    const svg = iconWrapper?.querySelector("svg");
+    expect(svg).toBeTruthy();
+  });
+
+  // ── controlled input ─────────────────────────────────────────────
 
   it("reflects typed characters in the input value immediately", async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
@@ -54,14 +61,12 @@ describe("SearchBar", () => {
     expect(input).toHaveValue("abc");
   });
 
-  // ── debounce + onSearch callback ────────────────────────────────
+  // ── debounce + onSearch callback ─────────────────────────────────
 
   it("calls onSearch with empty string on initial mount (shows all items)", async () => {
     const onSearch = jest.fn();
     render(<SearchBar onSearch={onSearch} />);
 
-    // The initial useEffect fires with debouncedValue === "" right away
-    // (useDebounce returns the initial value synchronously)
     await act(async () => {
       jest.advanceTimersByTime(0);
     });
@@ -74,13 +79,11 @@ describe("SearchBar", () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(<SearchBar onSearch={onSearch} />);
 
-    // clear the initial call
     onSearch.mockClear();
 
     const input = screen.getByRole("textbox");
     await user.type(input, "x");
 
-    // advance only 200 ms — debounce has NOT fired
     await act(async () => {
       jest.advanceTimersByTime(200);
     });
@@ -98,7 +101,6 @@ describe("SearchBar", () => {
     const input = screen.getByRole("textbox");
     await user.type(input, "eco");
 
-    // fire the debounce
     await act(async () => {
       jest.advanceTimersByTime(300);
     });
@@ -115,19 +117,16 @@ describe("SearchBar", () => {
 
     const input = screen.getByRole("textbox");
 
-    // type quickly, each keystroke resets the 300 ms window
     await user.type(input, "a");
     await act(async () => { jest.advanceTimersByTime(100); });
     await user.type(input, "b");
     await act(async () => { jest.advanceTimersByTime(100); });
     await user.type(input, "c");
 
-    // only now let the debounce finish
     await act(async () => {
       jest.advanceTimersByTime(300);
     });
 
-    // onSearch should have been called with the full string "abc"
     expect(onSearch).toHaveBeenCalledWith("abc");
   });
 
